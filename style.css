@@ -1,0 +1,97 @@
+body {
+  margin: 0;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.brand {
+  font-weight: 600;
+}
+
+.links {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.nav-links a {
+  margin-right: 12px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #1d4ed8;
+  cursor: pointer;
+  padding: 0;
+}
+
+.flash {
+  background: #e0f2fe;
+  color: #1d4ed8;
+  padding: 12px;
+  margin: 16px;
+  border-radius: 8px;
+}
+
+.pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.pill.green {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.pill.red {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.range-form {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: 16px;
+}
+
+.actions {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.error {
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+.defect-photo {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+main {
+  padding: 16px;
+}
