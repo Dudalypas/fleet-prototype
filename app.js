@@ -336,26 +336,38 @@
 
     	return `
         <div class="grid">
-          <div class="card">
-            <h2>Rask laiką</h2>
-            <div class="row">
-              <div>
-                <label>Nuo</label>
-                <input type="datetime-local" id="from" value="${from ? toLocalInput(from):''}">
-              </div>
-              <div>
-                <label>Iki</label>
-                <input type="datetime-local" id="to" value="${to ? toLocalInput(to):''}">
-              </div>
-            </div>
-            <div style="margin-top:10px;display:flex;gap:8px">
-              <button class="btn acc" onclick="applyRange()">Taikyti</button>
-              <button class="btn" onclick="clearRange()">Išvalyti</button>
-              <button class="btn warn" onclick="quick('2')">+2h</button>
-              <button class="btn warn" onclick="quick('24')">+24h</button>
-            </div>
-          </div>
+         <div class="card">
+			<h2>Rask laiką</h2>
 
+			<div class="time-range">
+				<div class="time-block">
+				<div class="label">Nuo</div>
+				<input
+					id="from"
+					class="flat-datetime"
+					placeholder="Pasirinkite pradžios laiką"
+					value="${from ? fmt(from) : ''}"
+				>
+				</div>
+
+				<div class="time-block">
+				<div class="label">Iki</div>
+				<input
+					id="to"
+					class="flat-datetime"
+					placeholder="Pasirinkite pabaigos laiką"
+					value="${to ? fmt(to) : ''}"
+				>
+				</div>
+			</div>
+
+			<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+				<button class="btn acc" onclick="applyRange()">Taikyti</button>
+				<button class="btn" onclick="clearRange()">Išvalyti</button>
+				<button class="btn warn" onclick="quick('2')">+2h</button>
+				<button class="btn warn" onclick="quick('24')">+24h</button>
+			</div>
+			</div>
           <div class="card">
             <h2>Automobiliai</h2>
             <div class="list">
@@ -376,16 +388,29 @@
     	return new Date(v).toISOString();
     }
 
-    function applyRange() {
-    	const f = document.getElementById('from').value;
-    	const t = document.getElementById('to').value;
-    	if (!f || !t) {
-    		alert('Pasirinkite laikotarpį');
-    		return;
-    	}
-    	location.hash = `#/?from=${encodeURIComponent(fromLocalInput(f))}&to=${encodeURIComponent(fromLocalInput(t))}`;
-    	render();
-    }
+	function applyRange(){
+	const f = document.getElementById('from')?.value.trim();
+	const t = document.getElementById('to')?.value.trim();
+
+	if (!f || !t){
+		alert('Pasirinkite laikotarpį (Nuo ir Iki).');
+		return;
+	}
+
+	// Flatpickr grąžina "YYYY-MM-DD HH:MM" – paverčiam į Date
+	const from = new Date(f.replace(' ', 'T'));
+	const to   = new Date(t.replace(' ', 'T'));
+
+	if (isNaN(from) || isNaN(to) || from >= to){
+		alert('Neteisingas laiko intervalas.');
+		return;
+	}
+
+	location.hash =
+		`#/?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
+	render();
+	}
+
 
     function clearRange() {
     	location.hash = `#/`;
@@ -1086,6 +1111,27 @@
         </div>
       `;
     }
+	function initDateTimePickers(){
+	if (typeof flatpickr === 'undefined') return;
+
+	const opts = {
+		enableTime: true,
+		time_24hr: true,
+		dateFormat: "Y-m-d H:i",
+		locale: flatpickr.l10ns.lt,
+	};
+
+	const fromInput = document.getElementById('from');
+	const toInput   = document.getElementById('to');
+
+	if (fromInput) {
+		flatpickr(fromInput, opts);
+	}
+	if (toInput) {
+		flatpickr(toInput, opts);
+	}
+	}
+
 
     /**********************
      * ROUTER
@@ -1103,6 +1149,7 @@
     	else if (hash === '#/problem') html = viewProblem(); // <--- ČIA
     	else html = `<div class="card">Nerasta.</div>`;
     	root.innerHTML = html;
+		initDateTimePickers();
     }
     window.addEventListener('hashchange', render);
     render();

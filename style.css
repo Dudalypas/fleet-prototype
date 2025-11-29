@@ -232,3 +232,26 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   opacity: 0.8;
   cursor: pointer;
 }
+.time-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.time-block {
+  flex: 1 1 220px;
+  background: rgba(15,23,42,0.4);
+  border-radius: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(148,163,184,0.35);
+}
+.time-block .label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+.flat-datetime {
+  width: 100%;
+  box-sizing: border-box;
+}
