@@ -17,7 +17,7 @@ Vieno puslapio mock aplikacija, kuria galima atidaryti tiesiog per `index.html` 
 - `#/admin` - ukvedzio panele.
 
 ## Pagrindinis funkcionalumas
-# Darbuotojas:
+### Darbuotojas:
 
 - Peržiūri automobilius pagal laikotarpį
 
@@ -27,7 +27,7 @@ Vieno puslapio mock aplikacija, kuria galima atidaryti tiesiog per `index.html` 
 
 - Praneša apie problemas per atskirą formą
 
-# Ūkvedys:
+### Ūkvedys:
 
 - Matyti visų automobilių būsenas
 
