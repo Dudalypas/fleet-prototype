@@ -7,7 +7,7 @@
     			role: 'darbuotojas',
     			email: 'user@demo.lt',
     			password: 'demo',
-    			name: 'Jonas'
+    			name: 'Lukas'
     		},
     		{
     			id: 'u2',
@@ -143,6 +143,20 @@
     	const res = db.reservations.filter(r => r.carId === carId);
     	return res.some(r => overlaps(from, to, r.from, r.to));
     }
+	function updateServiceNotes(id, value){
+		const d = db.defects.find(x => x.id === id);
+		if (!d) return;
+		d.serviceNotes = value.trim();
+		saveDB(db);
+	}
+
+	function updateServiceDoc(id, value){
+		const d = db.defects.find(x => x.id === id);
+		if (!d) return;
+		d.serviceDoc = value.trim();
+		saveDB(db);
+	}
+
 
     function ensureDocsBlock() {
     	// Auto-blokas, kai TA pasibaigus
@@ -345,6 +359,7 @@
 				<input
 					id="from"
 					class="flat-datetime"
+					type="text"
 					placeholder="Pasirinkite pradžios laiką"
 					value="${from ? fmt(from) : ''}"
 				>
@@ -355,6 +370,7 @@
 				<input
 					id="to"
 					class="flat-datetime"
+					type="text"
 					placeholder="Pasirinkite pabaigos laiką"
 					value="${to ? fmt(to) : ''}"
 				>
@@ -362,10 +378,9 @@
 			</div>
 
 			<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-				<button class="btn acc" onclick="applyRange()">Taikyti</button>
 				<button class="btn" onclick="clearRange()">Išvalyti</button>
-				<button class="btn warn" onclick="quick('2')">+2h</button>
-				<button class="btn warn" onclick="quick('24')">+24h</button>
+				<button class="btn warn" onclick="quick('2')">2h</button>
+				<button class="btn warn" onclick="quick('24')">24h</button>
 			</div>
 			</div>
           <div class="card">
@@ -389,27 +404,34 @@
     }
 
 	function applyRange(){
-	const f = document.getElementById('from')?.value.trim();
-	const t = document.getElementById('to')?.value.trim();
+  safeApplyRange();
+}
 
-	if (!f || !t){
-		alert('Pasirinkite laikotarpį (Nuo ir Iki).');
-		return;
-	}
+function safeApplyRange(){
+  const f = document.getElementById('from')?.value.trim();
+  const t = document.getElementById('to')?.value.trim();
 
-	// Flatpickr grąžina "YYYY-MM-DD HH:MM" – paverčiam į Date
-	const from = new Date(f.replace(' ', 'T'));
-	const to   = new Date(t.replace(' ', 'T'));
+  if (!f || !t){
+    return; // auto-mode: jeigu viena tuščia – nieko nedarom
+  }
 
-	if (isNaN(from) || isNaN(to) || from >= to){
-		alert('Neteisingas laiko intervalas.');
-		return;
-	}
+  const from = new Date(f.replace(' ', 'T'));
+  const to   = new Date(t.replace(' ', 'T'));
+  const now  = new Date();
 
-	location.hash =
-		`#/?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
-	render();
-	}
+  if (isNaN(from) || isNaN(to)){
+    alert('Neteisingas datos formatas.');
+    return;
+  }
+  if (from >= to){
+    alert('Pradžios laikas turi būti ankstesnis už pabaigos laiką.');
+    return;
+  }
+
+  location.hash =
+    `#/?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
+  render();
+}
 
 
     function clearRange() {
@@ -763,28 +785,58 @@
         </tr>`;
     	}).join('');
 
-    	const defects = db.defects.slice().reverse().map(d => {
-    		const car = db.cars.find(c => c.id === d.carId);
-    		return `<tr>
-          <td>${car?.title||'?'} <span class="muted">(${car?.plate||'?'})</span></td>
-          <td>${d.desc}</td>
-          <td>${d.priority || '-'}</td>
-          <td>${d.status}</td>
-          <td>${fmt(d.createdAt)}</td>
-          <td>${d.closedAt?fmt(d.closedAt):'-'}</td>
-          <td>${d.serviceNote || '<span class="muted mini">Nenurodyta</span>'}</td>
-          <td>${
-            d.serviceDocName
-              ? `<span class="mini">${d.serviceDocName}</span>`
-              : `<input type="file" class="mini" onchange="uploadServiceDoc('${d.id}', this)">`
-          }</td>
-          <td>
-            ${d.status==='atidarytas'
-              ? `<button class="btn ok mini" onclick="closeDefect('${d.id}')">Uždaryti</button>`
-              : `<span class="muted">Uždarytas</span>`}
-          </td>
-        </tr>`;
-    	}).join('');
+	const defects = db.defects.slice().reverse().map(d => {
+	const car  = db.cars.find(c => c.id === d.carId);
+	const prio = d.priority || 'nekritinis';
+
+	return `<tr>
+		<td>
+		${car?.title || '?'}
+		<span class="muted">(${car?.plate || '?'})</span>
+		</td>
+		<td>${d.desc}</td>
+		<td>
+		<select onchange="changeDefPriority('${d.id}', this.value)">
+			<option value="nekritinis" ${prio === 'nekritinis' ? 'selected' : ''}>Nekritinis</option>
+			<option value="kritinis" ${prio === 'kritinis' ? 'selected' : ''}>Kritinis</option>
+		</select>
+		</td>
+		<td>${d.status}</td>
+		<td>${fmt(d.createdAt)}</td>
+		<td>${d.closedAt ? fmt(d.closedAt) : '-'}</td>
+		<td>
+		<input
+			class="mini-input"
+			placeholder="Serviso darbai..."
+			value="${d.serviceNotes || ''}"
+			onchange="updateServiceNotes('${d.id}', this.value)"
+		>
+		</td>
+		<td>
+		<div class="file-cell">
+			<span class="mini muted">
+			${d.serviceDoc || 'Failas neprisegtas'}
+			</span>
+			<label class="btn mini">
+			Įkelti
+			<input
+				type="file"
+				accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+				style="display:none"
+				onchange="uploadServiceDoc('${d.id}', this)"
+			>
+			</label>
+		</div>
+		</td>
+		<td>
+		${
+			d.status === 'atidarytas'
+			? `<button class="btn ok mini" onclick="closeDefect('${d.id}')">Uždaryti</button>`
+			: `<span class="muted">Uždarytas</span>`
+		}
+		</td>
+	</tr>`;
+	}).join('');
 
     	const docs = db.docs.map(doc => {
     		const car = db.cars.find(c => c.id === doc.carId);
@@ -822,44 +874,47 @@
             </div>
           </div>
           <div class="card">
-  <h3>Blokai</h3>
-  <table class="table mini">
-    <thead>
-      <tr>
-        <th>Auto</th>
-        <th>Priežastis</th>
-        <th>Nuo</th>
-        <th>Iki</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>${
-      blocks && blocks.trim().length
-        ? blocks
-        : '<tr><td colspan="5" class="muted">Nėra</td></tr>'
-    }</tbody>
-  </table>
-</div>
-          <div class="card">
-            <h3>Defektai ir techninės priežiūros darbai</h3>
-            <table class="table mini">
-              <thead>
-                <tr>
-                  <th>Auto</th>
-                  <th>Aprašas</th>
-                  <th>Prioritetas</th>
-                  <th>Statusas</th>
-                  <th>Sukurta</th>
-                  <th>Uždaryta</th>
-                  <th>Serviso darbai</th>
-                  <th>Serviso dokumentas</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>${defects || '<tr><td colspan="9" class="muted">Nėra</td></tr>'}</tbody>
-            </table>
-          </div>
-
+			<h3>Blokai</h3>
+			<table class="table mini">
+				<thead>
+				<tr>
+					<th>Auto</th>
+					<th>Priežastis</th>
+					<th>Nuo</th>
+					<th>Iki</th>
+					<th></th>
+				</tr>
+				</thead>
+				<tbody>${
+				blocks && blocks.trim().length
+					? blocks
+					: '<tr><td colspan="5" class="muted">Nėra</td></tr>'
+				}</tbody>
+			</table>
+			</div>
+		<div class="card">
+			<h3>Defektai ir techninės priežiūros darbai</h3>
+			<table class="table mini">
+				<thead>
+				<tr>
+					<th>Auto</th>
+					<th>Aprašas</th>
+					<th>Prioritetas</th>
+					<th>Statusas</th>
+					<th>Sukurta</th>
+					<th>Uždaryta</th>
+					<th>Serviso darbai</th>
+					<th>Serviso dokumentas</th>
+					<th></th>
+				</tr>
+				</thead>
+				<tbody>${
+				defects && defects.trim().length
+					? defects
+					: '<tr><td colspan="9" class="muted">Nėra</td></tr>'
+				}</tbody>
+			</table>
+			</div>
           <div class="card">
             <h3>Dokumentai (TA / draudimas)</h3>
             <table class="table mini">
@@ -896,6 +951,36 @@
       `;
     }
 
+	function changeDefPriority(id, value){
+	const d = db.defects.find(x => x.id === id);
+	if (!d) return;
+
+	d.priority = value;
+
+	if (value === 'kritinis'){
+		const now = new Date().toISOString();
+		const to  = addDaysISO(7);
+		const has = db.blocks.some(b =>
+		b.carId === d.carId && b.reason === 'Kritinis defektas'
+		);
+		if (!has){
+		db.blocks.push({
+			carId: d.carId,
+			reason: 'Kritinis defektas',
+			from: now,
+			to
+		});
+		}
+	} else {
+		db.blocks = db.blocks.filter(b =>
+		!(b.carId === d.carId && b.reason === 'Kritinis defektas')
+		);
+	}
+
+	saveDB(db);
+	render();
+	}
+
     function validityStatus(iso) {
     	const now = new Date();
     	const d = new Date(iso);
@@ -926,16 +1011,16 @@
     	};
     }
 
-    function uploadServiceDoc(defectId, inputEl) {
-    	const file = inputEl.files[0];
-    	if (!file) return;
-    	const d = db.defects.find(x => x.id === defectId);
-    	if (!d) return;
-    	d.serviceDocName = file.name;
-    	d.serviceDocUploadedAt = new Date().toISOString();
-    	saveDB(db);
-    	render();
-    }
+	function uploadServiceDoc(id, input){
+	const d = db.defects.find(x => x.id === id);
+	if (!d || !input.files || !input.files[0]) return;
+
+	const file = input.files[0];
+	d.serviceDoc = file.name;
+
+	saveDB(db);
+	render();
+	}
 
     function createManualBlock() {
     	const carId = document.getElementById('blk_car').value;
@@ -1032,18 +1117,17 @@
 
     	return `
         <div class="grid">
+						<div style="margin-top:8px">
+                  <button class="btn" onclick="history.back()">Atgal</button>
+                </div>
           <div class="card">
             <div class="car">
               <img src="${car.image}" alt="">
               <div style="flex:1">
                 <h2 style="margin:0">${car.title} <span class="muted">(${car.plate})</span></h2>
-                <div class="mini muted">Vieta: ${car.location}</div>
                 <div class="kpi" style="margin-top:8px">
                   <span class="pill">TA iki: ${doc?fmtDate(doc.taValidUntil):'-'}</span>
                   <span class="pill">Draudimas iki: ${doc?fmtDate(doc.insuranceUntil):'-'}</span>
-                </div>
-                <div style="margin-top:8px">
-                  <button class="btn" onclick="history.back()">Atgal</button>
                 </div>
               </div>
             </div>
@@ -1114,24 +1198,62 @@
 	function initDateTimePickers(){
 	if (typeof flatpickr === 'undefined') return;
 
-	const opts = {
+	const now = new Date();
+	const currentTime = now.toTimeString().slice(0,5); // "HH:MM"
+
+	const baseOpts = {
 		enableTime: true,
 		time_24hr: true,
 		dateFormat: "Y-m-d H:i",
 		locale: flatpickr.l10ns.lt,
+		minDate: "today",
+		onChange: () => {
+		const f = document.getElementById('from')?.value.trim();
+		const t = document.getElementById('to')?.value.trim();
+		if (f && t) {
+			safeApplyRange(); // kaip ir turėjom anksčiau
+		}
+		}
 	};
 
 	const fromInput = document.getElementById('from');
 	const toInput   = document.getElementById('to');
 
 	if (fromInput) {
-		flatpickr(fromInput, opts);
-	}
-	if (toInput) {
-		flatpickr(toInput, opts);
-	}
+		flatpickr(fromInput, {
+		...baseOpts,
+		onReady(selectedDates, dateStr, instance) {
+			instance.set('minTime', currentTime); // šiandien nuo „dabar“
+		},
+		onOpen(selectedDates, dateStr, instance) {
+			const sel = selectedDates[0];
+			const today = new Date();
+			today.setHours(0,0,0,0);
+
+			if (!sel) {
+			instance.set('minTime', currentTime);
+			return;
+			}
+
+			const sameDay =
+			sel.getFullYear() === today.getFullYear() &&
+			sel.getMonth() === today.getMonth() &&
+			sel.getDate() === today.getDate();
+
+			instance.set('minTime', sameDay ? currentTime : "00:00");
+		}
+		});
 	}
 
+	if (toInput) {
+		flatpickr(toInput, {
+		...baseOpts,
+		onOpen(selectedDates, dateStr, instance) {
+			instance.set('minTime', "00:00");
+		}
+		});
+	}
+	}
 
     /**********************
      * ROUTER

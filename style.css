@@ -255,3 +255,19 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   width: 100%;
   box-sizing: border-box;
 }
+.flatpickr-day.flatpickr-disabled {
+  color: #6b7280 !important;     
+  background: transparent !important;
+  border-color: transparent !important;
+  cursor: not-allowed !important;
+}
+.file-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.file-cell .btn.mini {
+  flex-shrink: 0;
+}
+
+
