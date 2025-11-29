@@ -793,6 +793,7 @@ ${
               <button class="btn" onclick="resetDB()">🔁 Reset duomenų</button>
             </div>
           </div>
+
           <div class="card">
   <h3>Blokai</h3>
   <table class="table mini">
@@ -812,6 +813,8 @@ ${
     }</tbody>
   </table>
 </div>
+
+
           <div class="card">
             <h3>Defektai ir techninės priežiūros darbai</h3>
             <table class="table mini">

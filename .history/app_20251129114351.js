@@ -468,20 +468,17 @@
               <tr><th>Auto</th><th>Nuo</th><th>Iki</th><th>Būsena</th><th></th></tr>
             </thead>
             <tbody>
-${
-  mine.length
-    ? mine.map(r => {
-        const car = db.cars.find(c => c.id === r.carId);
-        return `<tr>
-          <td>${car?.title||'?' } <span class="muted">(${car?.plate||'?'})</span></td>
-          <td>${fmt(r.from)}</td>
-          <td>${fmt(r.to)}</td>
-          <td>${r.status}</td>
-          <td><button class="btn danger mini" onclick="cancelRes('${r.id}')">Atšaukti</button></td>
-        </tr>`;
-      }).join('')
-    : '<tr><td colspan="5" class="muted">Rezervacijų nėra.</td></tr>'
-}
+              ${mine.map(r=>{
+                const car = db.cars.find(c=>c.id===r.carId);
+                return `<tr>
+                  <td>${car?.title||'?' } <span class="muted">(${car?.plate||'?'})</span></td>
+                  <td>${fmt(r.from)}</td>
+                  <td>${fmt(r.to)}</td>
+                  <td>${r.status}</td>
+                  <td><button class="btn danger mini" onclick="cancelRes('${r.id}')">Atšaukti</button></td>
+                </tr>`;
+              }).join('') || ` < tr > < td colspan = "5"
+    	class = "muted" > Rezervacijų nėra. < /td></tr > `}
             </tbody>
           </table>
         </div>
@@ -793,25 +790,19 @@ ${
               <button class="btn" onclick="resetDB()">🔁 Reset duomenų</button>
             </div>
           </div>
+
           <div class="card">
-  <h3>Blokai</h3>
-  <table class="table mini">
-    <thead>
-      <tr>
-        <th>Auto</th>
-        <th>Priežastis</th>
-        <th>Nuo</th>
-        <th>Iki</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>${
-      blocks && blocks.trim().length
-        ? blocks
-        : '<tr><td colspan="5" class="muted">Nėra</td></tr>'
-    }</tbody>
-  </table>
-</div>
+            <h3>Blokai</h3>
+            <table class="table mini">
+              <thead><tr><th>Auto</th><th>Priežastis</th><th>Nuo</th><th>Iki</th><th></th></tr></thead>
+              <tbody>${
+				blocks && blocks.trim().length
+					? blocks
+					: '<tr><td colspan="5" class="muted">Nėra</td></tr>'
+				}</tbody>
+            </table>
+          </div>
+
           <div class="card">
             <h3>Defektai ir techninės priežiūros darbai</h3>
             <table class="table mini">

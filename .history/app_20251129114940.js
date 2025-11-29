@@ -793,25 +793,20 @@ ${
               <button class="btn" onclick="resetDB()">🔁 Reset duomenų</button>
             </div>
           </div>
+
           <div class="card">
-  <h3>Blokai</h3>
-  <table class="table mini">
-    <thead>
-      <tr>
-        <th>Auto</th>
-        <th>Priežastis</th>
-        <th>Nuo</th>
-        <th>Iki</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>${
-      blocks && blocks.trim().length
-        ? blocks
-        : '<tr><td colspan="5" class="muted">Nėra</td></tr>'
-    }</tbody>
-  </table>
-</div>
+            <h3>Blokai</h3>
+            <table class="table mini">
+              <thead><tr><th>Auto</th><th>Priežastis</th><th>Nuo</th><th>Iki</th><th></th></tr></thead>
+<tbody>${
+  defects && defects.trim().length
+    ? defects
+    : '<tr><td colspan="9" class="muted">Nėra</td></tr>'
+}</tbody>
+
+            </table>
+          </div>
+
           <div class="card">
             <h3>Defektai ir techninės priežiūros darbai</h3>
             <table class="table mini">
