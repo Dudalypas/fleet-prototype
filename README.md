@@ -17,33 +17,33 @@ Vieno puslapio mock aplikacija, kuria galima atidaryti tiesiog per `index.html` 
 - `#/admin` - ukvedzio panele.
 
 ## Pagrindinis funkcionalumas
--Darbuotojas:
+# Darbuotojas:
 
--Peržiūri automobilius pagal laikotarpį
+- Peržiūri automobilius pagal laikotarpį
 
--Kuria rezervacijas (su patvirtinimo langu)
+- Kuria rezervacijas (su patvirtinimo langu)
 
--Atšaukia rezervacijas (su patvirtinimo langu)
+- Atšaukia rezervacijas (su patvirtinimo langu)
 
--Praneša apie problemas per atskirą formą
+- Praneša apie problemas per atskirą formą
 
--Ūkvedys:
+# Ūkvedys:
 
--Matyti visų automobilių būsenas
+- Matyti visų automobilių būsenas
 
--Administruoja defektus ir techninės priežiūros darbus
+- Administruoja defektus ir techninės priežiūros darbus
 
--Žymi prioritetus (kritinis / nekritinis)
+- Žymi prioritetus (kritinis / nekritinis)
 
--Uždaro darbus su serviso pastaba
+- Uždaro darbus su serviso pastaba
 
--Prisega serviso dokumento pavadinimą
+- Prisega serviso dokumento pavadinimą
 
--Atnaujina TA ir draudimo galiojimą
+- Atnaujina TA ir draudimo galiojimą
 
--Blokuoja / atrakina automobilius
+- Blokuoja / atrakina automobilius
 
--Matyti visą automobilio istoriją
+- Matyti visą automobilio istoriją
 
 ## Mock duomenys ir isvalymas
 - Visi duomenys laikomi atmintyje ir sinchronizuojami su `localStorage` (rezervacijos, defektai, automobiliai, vartotojai).
