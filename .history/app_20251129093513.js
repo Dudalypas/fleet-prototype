@@ -7,9 +7,9 @@
         { id: 'u2', role: 'ukvedys', email: 'ukvedys@demo.lt', password: 'demo', name: 'Aistė' },
       ],
       cars: [
-        { id: 'c1', plate:'MAK 001', title:'VW Passat Variant', image:'images/passat.png' },
-        { id: 'c2', plate:'DDL 320', title:'BMW 330i', image:'images/bmw.png' },
-        { id: 'c3', plate:'CAP 300', title:'Mercedes-Benz C300', image:'images/mercedes.png' },
+        { id: 'c1', plate:'JGA 001', title:'VW Passat Variant', location:'Vilnius', image:'images/passat.png' },
+        { id: 'c2', plate:'BWM 320', title:'BMW 3 Touring', location:'Vilnius', image:'images/bmw.png' },
+        { id: 'c3', plate:'FRD 777', title:'Ford Focus', location:'Kaunas', image:'images/focus.png' },
       ],
       reservations: [],
       defects: [],
@@ -98,51 +98,12 @@
         area.innerHTML = `
           <span class="pill">Vartotojas: <b>${u.name}</b> (${u.role})</span>
           <button class="btn" onclick="location.hash='#/';render()">Pagrindinis</button>
-          ${u.role === 'darbuotojas'
-            ? `<button class="btn" onclick="location.hash='#/my'">Mano rezervacijos</button>`
-            : ''}
-          ${u.role === 'ukvedys'
-            ? `<button class="btn" onclick="location.hash='#/admin'">Administravimas</button>`
-            : ''}
+          <button class="btn" onclick="location.hash='#/my'">Mano rezervacijos</button>
+          ${u.role==='ukvedys' ? `<button class="btn" onclick="location.hash='#/admin'">Administravimas</button>`:''}
           <button class="btn danger" onclick="logout()">Atsijungti</button>
         `;
       }
     }
-    function createDefectForCar(carId){
-      const descEl = document.getElementById('def_desc_car');
-      const prioEl = document.getElementById('def_priority_car');
-      if (!descEl || !prioEl) return;
-
-      const desc = descEl.value.trim();
-      const priority = prioEl.value || 'nekritinis';
-      if (!desc) {
-        alert('Įrašykite aprašą');
-        return;
-      }
-
-      db.defects.push({
-        id: 'd'+cryptoRandom(),
-        carId,
-        desc,
-        priority,
-        status: 'atidarytas',
-        createdAt: new Date().toISOString(),
-        closedAt: null,
-        serviceNote: '',
-        serviceDocName: ''
-      });
-
-      if (priority === 'kritinis') {
-        const from = new Date().toISOString();
-        const to   = addDaysISO(3);
-        db.blocks.push({ carId, reason:'Defektas (kritinis)', from, to });
-      }
-
-      saveDB(db);
-      alert('Defektas užregistruotas.');
-      render();
-    }
-
 
     /**********************
      * VIEWS
@@ -222,6 +183,7 @@
           <img src="${c.image}" alt="">
           <div style="flex:1">
             <h3 style="margin:0 0 6px 0">${c.title} <span class="muted">(${c.plate})</span></h3>
+            <div class="mini muted">Vieta: ${c.location}</div>
             <div class="kpi" style="margin-top:8px">
               ${
                 c.status==='Laisvas' ? `<span class="pill status-free">Laisvas</span>` :
@@ -232,11 +194,7 @@
           </div>
           <div class="right">
             <button class="btn" onclick="location.hash='#/car?id=${c.id}'">Peržiūrėti</button>
-            ${
-              (from && to && c.status==='Laisvas' && u.role === 'darbuotojas')
-                ? `<button class="btn ok" onclick="reserve('${c.id}','${from}','${to}')">Rezervuoti</button>`
-                : ''
-            }
+            ${ (from && to && c.status==='Laisvas') ? `<button class="btn ok" onclick="reserve('${c.id}','${from}','${to}')">Rezervuoti</button>`:''}
           </div>
         </div>
       `;
@@ -297,28 +255,13 @@
       location.hash = `#/?from=${encodeURIComponent(now.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
       render();
     }
+
     function reserve(carId, from, to){
       const u = currentUser();
       if(!u) return alert('Prisijunkite');
-
-      if (u.role !== 'darbuotojas') {
-        alert('Tik darbuotojai gali rezervuoti automobilius.');
-        return;
-      }
-
       if(carBlocked(carId,from,to)) return alert('Automobilis užblokuotas šiame intervale.');
       if(carReserved(carId,from,to)) return alert('Automobilis jau užimtas šiame intervale.');
-
-      db.reservations.push({
-        id: 'r'+cryptoRandom(),
-        userId: u.id,
-        carId,
-        from,
-        to,
-        status:'patvirtinta',
-        createdAt:new Date().toISOString()
-      });
-
+      db.reservations.push({ id: 'r'+cryptoRandom(), userId:u.id, carId, from, to, status:'patvirtinta', createdAt:new Date().toISOString() });
       saveDB(db);
       alert('Rezervacija sukurta.');
       render();
@@ -330,11 +273,6 @@
     function viewMy(){
       const u = currentUser();
       if(!u){ location.hash='#/login'; return viewLogin(); }
-
-      if (u.role !== 'darbuotojas') {
-        location.hash = '#/admin';
-        return viewAdmin();
-      }
       const mine = db.reservations
         .filter(r=>r.userId===u.id)
         .sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
@@ -361,16 +299,31 @@
           </table>
         </div>
 
-            <div class="card" style="margin-top:12px">
-        <h3>Pranešti apie problemą</h3>
-        <p class="muted mini">
-          Jei važiuojant su rezervuotu automobiliu pastebėjote problemą,
-          spauskite „Pranešti apie problemą“ ir pasirinkite automobilį iš sąrašo.
-        </p>
-        <button class="btn warn" onclick="location.hash='#/problem'">
-          Pranešti apie problemą
-        </button>
-      </div>
+        <div class="card" style="margin-top:12px">
+          <h3>Registruoti defektą</h3>
+          <div class="row">
+            <div>
+              <label>Automobilis</label>
+              <select id="def_car">
+                ${db.cars.map(c=>`<option value="${c.id}">${c.title} (${c.plate})</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label>Aprašas</label>
+              <input id="def_desc" placeholder="Triukšmas, lemputė, padanga..." />
+            </div>
+            <div>
+              <label>Prioritetas</label>
+              <select id="def_priority">
+                <option value="nekritinis">Nekritinis</option>
+                <option value="kritinis">Kritinis</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:10px">
+            <button class="btn warn" onclick="createDefect()">Pateikti defektą</button>
+          </div>
+        </div>
       `;
     }
     function cancelRes(id){
@@ -386,36 +339,6 @@
       if (diffDays < 30) return { label:'ARTĖJA PABAIGA', class:'warn' };
       return { label:'OK', class:'good' };
     }
-    function createDefectForCar(carId){
-      const descEl = document.getElementById('def_desc_car');
-      if (!descEl) return;
-      const desc = descEl.value.trim();
-      if (!desc) return alert('Įrašykite aprašą');
-
-      const prioEl = document.getElementById('def_priority_car');
-      const priority = prioEl ? prioEl.value : 'nekritinis';
-
-      db.defects.push({
-        id: 'd' + cryptoRandom(),
-        carId,
-        desc,
-        priority,
-        status: 'atidarytas',
-        createdAt: new Date().toISOString(),
-        closedAt: null
-      });
-
-      // kritinis defektas → blokas
-      if (priority === 'kritinis') {
-        const from = new Date().toISOString();
-        const to   = addDaysISO(999999); // ilgam
-        db.blocks.push({ carId, reason:'Defektas (kritinis)', from, to });
-      }
-
-      saveDB(db);
-      alert('Defektas užregistruotas.');
-      render(); // perpiešia tą patį car view su atnaujinta istorija
-    }
     function createDefect(){
       const carId = document.getElementById('def_car').value;
       const desc  = document.getElementById('def_desc').value.trim();
@@ -426,7 +349,7 @@
         id: 'd'+cryptoRandom(),
         carId,
         desc,
-        priority,          
+        priority,              // <--- naujas laukas
         status:'atidarytas',
         createdAt:new Date().toISOString(),
         closedAt:null
@@ -443,97 +366,7 @@
       alert('Defektas užregistruotas' + (priority === 'kritinis' ? ' ir automobilis užblokuotas.' : '.'));
       render();
     }
-        function viewProblem(){
-      const u = currentUser();
-      if (!u){ 
-        location.hash = '#/login'; 
-        return viewLogin(); 
-      }
-      if (u.role !== 'darbuotojas') {
-        // ūkvedį ir kitus gražiai nuspiriam
-        location.hash = '#/admin';
-        return viewAdmin();
-      }
 
-      // automobiliai, kuriuos šitas useris yra rezervavęs
-      const myCarIds = [...new Set(
-        db.reservations
-          .filter(r => r.userId === u.id)
-          .map(r => r.carId)
-      )];
-
-      const myCars = db.cars.filter(c => myCarIds.includes(c.id));
-
-      if (myCars.length === 0) {
-        return `
-          <div class="card">
-            <h2>Pranešti apie problemą</h2>
-            <p class="muted">
-              Neturite aktyvių ar buvusių rezervacijų, todėl negalite pranešti apie problemą.
-            </p>
-            <button class="btn" onclick="location.hash='#/'">Atgal</button>
-          </div>
-        `;
-      }
-
-      return `
-        <div class="card">
-          <h2>Pranešti apie problemą</h2>
-          <div class="row">
-            <div>
-              <label>Automobilis</label>
-              <select id="problem_car">
-                ${myCars.map(c => `
-                  <option value="${c.id}">${c.title} (${c.plate})</option>
-                `).join('')}
-              </select>
-            </div>
-            <div>
-              <label>Problemos aprašymas</label>
-              <input id="problem_desc" placeholder="Lemputė, garsas, gedimas..." />
-            </div>
-          </div>
-          <div style="margin-top:10px; display:flex; gap:8px">
-            <button class="btn warn" onclick="submitProblem()">Pateikti</button>
-            <button class="btn" onclick="location.hash='#/my'">Atgal</button>
-          </div>
-        </div>
-      `;
-    }
-        function submitProblem(){
-      const u = currentUser();
-      if (!u || u.role !== 'darbuotojas'){
-        alert('Tik darbuotojai gali pranešti apie problemą.');
-        return;
-      }
-
-      const carIdEl = document.getElementById('problem_car');
-      const descEl  = document.getElementById('problem_desc');
-      if (!carIdEl || !descEl) return;
-
-      const carId = carIdEl.value;
-      const desc  = descEl.value.trim();
-
-      if (!desc) {
-        alert('Įveskite problemos aprašymą.');
-        return;
-      }
-
-      db.defects.push({
-        id: 'd'+cryptoRandom(),
-        carId,
-        desc,
-        priority: 'nekritinis', // darbuotojas neskirsto
-        status: 'atidarytas',
-        createdAt: new Date().toISOString(),
-        closedAt: null
-      });
-
-      saveDB(db);
-      alert('Problema užregistruota ir perduota ūkvedžiui.');
-      location.hash = '#/my';
-      render();
-    }
     function viewAdmin(){
       const u = currentUser();
       if(!u || u.role!=='ukvedys'){ location.hash='#/login'; return viewLogin(); }
@@ -554,16 +387,10 @@
         return `<tr>
           <td>${car?.title||'?'} <span class="muted">(${car?.plate||'?'})</span></td>
           <td>${d.desc}</td>
-          <td>${d.priority || '-'}</td>
+          <td>${d.priority || '-'}</td>    <!-- ČIA -->
           <td>${d.status}</td>
           <td>${fmt(d.createdAt)}</td>
           <td>${d.closedAt?fmt(d.closedAt):'-'}</td>
-          <td>${d.serviceNote || '<span class="muted mini">Nenurodyta</span>'}</td>
-          <td>${
-            d.serviceDocName
-              ? `<span class="mini">${d.serviceDocName}</span>`
-              : `<input type="file" class="mini" onchange="uploadServiceDoc('${d.id}', this)">`
-          }</td>
           <td>
             ${d.status==='atidarytas'
               ? `<button class="btn ok mini" onclick="closeDefect('${d.id}')">Uždaryti</button>`
@@ -572,25 +399,20 @@
         </tr>`;
       }).join('');
 
+      // dokumentų būsena
       const docs = db.docs.map(doc=>{
         const car = db.cars.find(c=>c.id===doc.carId);
-        const taS  = validityStatus(doc.taValidUntil);
-        const insS = validityStatus(doc.insuranceUntil);
+        const taOk = new Date(doc.taValidUntil) > new Date();
+        const insOk= new Date(doc.insuranceUntil) > new Date();
         return `<tr>
           <td>${car?.title} <span class="muted">(${car?.plate})</span></td>
+          <td>${fmtDate(doc.taValidUntil)} ${taOk?'<span class="success mini">OK</span>':'<span style="color:#fecaca" class="mini">PASIBAIGĘ</span>'}</td>
+          <td>${fmtDate(doc.insuranceUntil)} ${insOk?'<span class="success mini">OK</span>':'<span style="color:#fecaca" class="mini">PASIBAIGĘ</span>'}</td>
           <td>
-            ${fmtDate(doc.taValidUntil)}
-            <span class="mini ${taS.class}">${taS.label}</span>
+            <button class="btn mini" onclick="extendTA('${doc.carId}')">+30d TA</button>
+            <button class="btn mini" onclick="extendINS('${doc.carId}')">+90d draudimas</button>
           </td>
-          <td>
-            ${fmtDate(doc.insuranceUntil)}
-            <span class="mini ${insS.class}">${insS.label}</span>
-          </td>
-          <td>
-            <button class="btn mini" onclick="extendTA('${doc.carId}')">Nustatyti naują TA</button>
-            <button class="btn mini" onclick="extendINS('${doc.carId}')">Nustatyti naują draudimą</button>
-          </td>
-        </tr>`;
+        </tr>`
       }).join('');
 
       return `
@@ -617,22 +439,10 @@
           </div>
 
           <div class="card">
-            <h3>Defektai ir techninės priežiūros darbai</h3>
+            <h3>Defektai</h3>
             <table class="table mini">
-              <thead>
-                <tr>
-                  <th>Auto</th>
-                  <th>Aprašas</th>
-                  <th>Prioritetas</th>
-                  <th>Statusas</th>
-                  <th>Sukurta</th>
-                  <th>Uždaryta</th>
-                  <th>Serviso darbai</th>
-                  <th>Serviso dokumentas</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>${defects || '<tr><td colspan="9" class="muted">Nėra</td></tr>'}</tbody>
+              <thead><tr><th>Auto</th><th>Aprašas</th><th>Statusas</th><th>Sukurta</th><th>Uždaryta</th><th></th></tr></thead>
+              <tbody>${defects || '<tr><td colspan="6" class="muted">Nėra</td></tr>'}</tbody>
             </table>
           </div>
 
@@ -643,7 +453,8 @@
               <tbody>${docs}</tbody>
             </table>
           </div>
-                  <div class="card">
+        </div>
+        <div class="card">
         <h3>Naujas planinis blokas</h3>
         <div class="row">
           <div>
@@ -668,7 +479,6 @@
           <button class="btn" onclick="createManualBlock()">Sukurti bloką</button>
         </div>
       </div>
-        </div>
       `;
     }
     function validityStatus(iso){
@@ -681,22 +491,12 @@
       }
 
       if (diffDays < 0) {
-        return { label:'PASIBAIGUSI', class:'bad' };     
+        return { label:'PASIBAIGĘ', class:'bad' };          // raudona
       }
       if (diffDays < 30) {
-        return { label:'ARTĖJA PABAIGA', class:'warn' };  
+        return { label:'ARTĖJA PABAIGA', class:'warn' };    // geltona
       }
-      return { label:'OK', class:'success' };             
-    }
-    function uploadServiceDoc(defectId, inputEl){
-      const file = inputEl.files[0];
-      if (!file) return;
-      const d = db.defects.find(x=>x.id===defectId);
-      if (!d) return;
-      d.serviceDocName = file.name;
-      d.serviceDocUploadedAt = new Date().toISOString();
-      saveDB(db);
-      render();
+      return { label:'OK', class:'success' };               // žalia
     }
     function createManualBlock(){
       const carId = document.getElementById('blk_car').value;
@@ -722,50 +522,38 @@
     function closeDefect(id){
       const d = db.defects.find(x=>x.id===id);
       if(!d) return;
-
-      const note = prompt("Įveskite serviso atliktų darbų santrauką (pasirinktinai):", d.serviceNote || "");
-      if (note !== null) {
-        d.serviceNote = note.trim();
-      }
-
       d.status = 'uzdarytas';
       d.closedAt = new Date().toISOString();
-
-      db.blocks = db.blocks.filter(b=> !(b.carId===d.carId && b.reason && b.reason.startsWith('Defektas')));
-      saveDB(db);
-      render();
+      // nuimti bloką, jei buvo dėl defekto (pagal laiką ~ dabar)
+      db.blocks = db.blocks.filter(b=> !(b.carId===d.carId && b.reason==='Defektas'));
+      saveDB(db); render();
     }
     function extendTA(carId){
       const doc = db.docs.find(d=>d.carId===carId); if(!doc) return;
-      const input = prompt("Įveskite naują TA galiojimo datą (YYYY-MM-DD):", doc.taValidUntil.slice(0,10));
-      if (!input) return;
-      const d = new Date(input);
-      if (isNaN(d.getTime())) { alert("Neteisinga data"); return; }
-      doc.taValidUntil = d.toISOString();
+      const base = new Date(doc.taValidUntil); base.setDate(base.getDate()+30);
+      doc.taValidUntil = base.toISOString();
+      // jei buvo TA blokas, nuimam
       db.blocks = db.blocks.filter(b=> !(b.carId===carId && b.reason==='TA negalioja'));
       saveDB(db); render();
     }
     function extendINS(carId){
       const doc = db.docs.find(d=>d.carId===carId); if(!doc) return;
-      const input = prompt("Įveskite naują draudimo galiojimo datą (YYYY-MM-DD):", doc.insuranceUntil.slice(0,10));
-      if (!input) return;
-      const d = new Date(input);
-      if (isNaN(d.getTime())) { alert("Neteisinga data"); return; }
-      doc.insuranceUntil = d.toISOString();
+      const base = new Date(doc.insuranceUntil); base.setDate(base.getDate()+90);
+      doc.insuranceUntil = base.toISOString();
       saveDB(db); render();
     }
+
     function viewCar(){
       const u = currentUser();
       if(!u){ location.hash='#/login'; return viewLogin(); }
-
       const params = new URLSearchParams(location.hash.split('?')[1]||'');
       const id = params.get('id');
       const car = db.cars.find(c=>c.id===id);
       if(!car) return `<div class="card">Nerastas automobilis.</div>`;
 
-      const doc  = db.docs.find(d=>d.carId===id);
-      const resv = db.reservations.filter(r=>r.carId===id).sort((a,b)=>new Date(b.from)-new Date(a.from));
-      const dfc  = db.defects.filter(d=>d.carId===id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+      const doc = db.docs.find(d=>d.carId===id);
+      const resv = db.reservations.filter(r=>r.carId===id).slice(-5).reverse();
+      const dfc  = db.defects.filter(d=>d.carId===id).slice(-5).reverse();
 
       return `
         <div class="grid">
@@ -787,68 +575,27 @@
           </div>
 
           <div class="card">
-            <h3>Rezervacijų istorija</h3>
+            <h3>Paskutinės rezervacijos</h3>
             <table class="table mini">
               <thead><tr><th>Nuo</th><th>Iki</th><th>Vartotojas</th></tr></thead>
               <tbody>
-                ${
-                  resv.length
-                  ? resv.map(r=>{
-                      const usr = db.users.find(u=>u.id===r.userId);
-                      return `<tr>
-                        <td>${fmt(r.from)}</td>
-                        <td>${fmt(r.to)}</td>
-                        <td>${usr?.name||usr?.email||'?'}</td>
-                      </tr>`;
-                    }).join('')
-                  : `<tr><td colspan="3" class="muted">Nėra</td></tr>`
-                }
+                ${resv.map(r=>{
+                  const usr = db.users.find(u=>u.id===r.userId);
+                  return `<tr><td>${fmt(r.from)}</td><td>${fmt(r.to)}</td><td>${usr?.name||usr?.email||'?'}</td></tr>`;
+                }).join('') || `<tr><td colspan="3" class="muted">Nėra</td></tr>`}
               </tbody>
             </table>
           </div>
 
           <div class="card">
-            <h3>Defektai ir techninės priežiūros darbai</h3>
+            <h3>Defektai</h3>
             <table class="table mini">
-              <thead><tr><th>Aprašas</th><th>Prioritetas</th><th>Statusas</th><th>Sukurta</th></tr></thead>
+              <thead><tr><th>Aprašas</th><th>Statusas</th><th>Data</th></tr></thead>
               <tbody>
-                ${
-                  dfc.length
-                  ? dfc.map(d=>`
-                    <tr>
-                      <td>${d.desc}</td>
-                      <td>${d.priority || '-'}</td>
-                      <td>${d.status}</td>
-                      <td>${fmt(d.createdAt)}</td>
-                    </tr>
-                  `).join('')
-                  : `<tr><td colspan="4" class="muted">Nėra</td></tr>`
-                }
+                ${dfc.map(d=>`<tr><td>${d.desc}</td><td>${d.status}</td><td>${fmt(d.createdAt)}</td></tr>`).join('') || `<tr><td colspan="3" class="muted">Nėra</td></tr>`}
               </tbody>
             </table>
           </div>
-
-          ${u.role === 'ukvedys' ? `
-          <div class="card">
-            <h3>Naujas defektas (ūkvedys)</h3>
-            <div class="row">
-              <div>
-                <label>Aprašas</label>
-                <input id="def_desc_car" placeholder="Triukšmas, įlenkimas, padanga..." />
-              </div>
-              <div>
-                <label>Prioritetas</label>
-                <select id="def_priority_car">
-                  <option value="nekritinis">Nekritinis</option>
-                  <option value="kritinis">Kritinis</option>
-                </select>
-              </div>
-            </div>
-            <div style="margin-top:8px">
-              <button class="btn warn" onclick="createDefectForCar('${car.id}')">Sukurti defektą</button>
-            </div>
-          </div>
-          ` : ''}
         </div>
       `;
     }
@@ -866,7 +613,6 @@
       else if(hash==='#/my') html = viewMy();
       else if(hash==='#/admin') html = viewAdmin();
       else if(hash==='#/car') html = viewCar();
-      else if(hash==='#/problem') html = viewProblem(); // <--- ČIA
       else html = `<div class="card">Nerasta.</div>`;
       root.innerHTML = html;
     }

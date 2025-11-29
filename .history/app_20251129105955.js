@@ -643,7 +643,8 @@
               <tbody>${docs}</tbody>
             </table>
           </div>
-                  <div class="card">
+        </div>
+              <div class="card">
         <h3>Naujas planinis blokas</h3>
         <div class="row">
           <div>
@@ -668,7 +669,6 @@
           <button class="btn" onclick="createManualBlock()">Sukurti bloką</button>
         </div>
       </div>
-        </div>
       `;
     }
     function validityStatus(iso){

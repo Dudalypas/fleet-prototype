@@ -7,9 +7,9 @@
         { id: 'u2', role: 'ukvedys', email: 'ukvedys@demo.lt', password: 'demo', name: 'Aistė' },
       ],
       cars: [
-        { id: 'c1', plate:'MAK 001', title:'VW Passat Variant', image:'images/passat.png' },
-        { id: 'c2', plate:'DDL 320', title:'BMW 330i', image:'images/bmw.png' },
-        { id: 'c3', plate:'CAP 300', title:'Mercedes-Benz C300', image:'images/mercedes.png' },
+        { id: 'c1', plate:'MAK 001', title:'VW Passat Variant', location:'Vilnius', image:'images/passat.png' },
+        { id: 'c2', plate:'DDL 320', title:'BMW 3 Touring', location:'Vilnius', image:'images/bmw.png' },
+        { id: 'c3', plate:'SSS 777', title:'Ford Focus', location:'Kaunas', image:'images/focus.png' },
       ],
       reservations: [],
       defects: [],
@@ -108,41 +108,6 @@
         `;
       }
     }
-    function createDefectForCar(carId){
-      const descEl = document.getElementById('def_desc_car');
-      const prioEl = document.getElementById('def_priority_car');
-      if (!descEl || !prioEl) return;
-
-      const desc = descEl.value.trim();
-      const priority = prioEl.value || 'nekritinis';
-      if (!desc) {
-        alert('Įrašykite aprašą');
-        return;
-      }
-
-      db.defects.push({
-        id: 'd'+cryptoRandom(),
-        carId,
-        desc,
-        priority,
-        status: 'atidarytas',
-        createdAt: new Date().toISOString(),
-        closedAt: null,
-        serviceNote: '',
-        serviceDocName: ''
-      });
-
-      if (priority === 'kritinis') {
-        const from = new Date().toISOString();
-        const to   = addDaysISO(3);
-        db.blocks.push({ carId, reason:'Defektas (kritinis)', from, to });
-      }
-
-      saveDB(db);
-      alert('Defektas užregistruotas.');
-      render();
-    }
-
 
     /**********************
      * VIEWS
@@ -222,6 +187,7 @@
           <img src="${c.image}" alt="">
           <div style="flex:1">
             <h3 style="margin:0 0 6px 0">${c.title} <span class="muted">(${c.plate})</span></h3>
+            <div class="mini muted">Vieta: ${c.location}</div>
             <div class="kpi" style="margin-top:8px">
               ${
                 c.status==='Laisvas' ? `<span class="pill status-free">Laisvas</span>` :
@@ -554,16 +520,10 @@
         return `<tr>
           <td>${car?.title||'?'} <span class="muted">(${car?.plate||'?'})</span></td>
           <td>${d.desc}</td>
-          <td>${d.priority || '-'}</td>
+          <td>${d.priority || '-'}</td>    <!-- ČIA -->
           <td>${d.status}</td>
           <td>${fmt(d.createdAt)}</td>
           <td>${d.closedAt?fmt(d.closedAt):'-'}</td>
-          <td>${d.serviceNote || '<span class="muted mini">Nenurodyta</span>'}</td>
-          <td>${
-            d.serviceDocName
-              ? `<span class="mini">${d.serviceDocName}</span>`
-              : `<input type="file" class="mini" onchange="uploadServiceDoc('${d.id}', this)">`
-          }</td>
           <td>
             ${d.status==='atidarytas'
               ? `<button class="btn ok mini" onclick="closeDefect('${d.id}')">Uždaryti</button>`
@@ -572,10 +532,12 @@
         </tr>`;
       }).join('');
 
+      // dokumentų būsena
       const docs = db.docs.map(doc=>{
         const car = db.cars.find(c=>c.id===doc.carId);
         const taS  = validityStatus(doc.taValidUntil);
         const insS = validityStatus(doc.insuranceUntil);
+
         return `<tr>
           <td>${car?.title} <span class="muted">(${car?.plate})</span></td>
           <td>
@@ -587,8 +549,8 @@
             <span class="mini ${insS.class}">${insS.label}</span>
           </td>
           <td>
-            <button class="btn mini" onclick="extendTA('${doc.carId}')">Nustatyti naują TA</button>
-            <button class="btn mini" onclick="extendINS('${doc.carId}')">Nustatyti naują draudimą</button>
+            <button class="btn mini" onclick="extendTA('${doc.carId}')">Keisti TA datą</button>
+            <button class="btn mini" onclick="extendINS('${doc.carId}')">Keisti draudimo datą</button>
           </td>
         </tr>`;
       }).join('');
@@ -617,22 +579,10 @@
           </div>
 
           <div class="card">
-            <h3>Defektai ir techninės priežiūros darbai</h3>
+            <h3>Defektai</h3>
             <table class="table mini">
-              <thead>
-                <tr>
-                  <th>Auto</th>
-                  <th>Aprašas</th>
-                  <th>Prioritetas</th>
-                  <th>Statusas</th>
-                  <th>Sukurta</th>
-                  <th>Uždaryta</th>
-                  <th>Serviso darbai</th>
-                  <th>Serviso dokumentas</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>${defects || '<tr><td colspan="9" class="muted">Nėra</td></tr>'}</tbody>
+              <thead><tr><th>Auto</th><th>Aprašas</th><th>Statusas</th><th>Sukurta</th><th>Uždaryta</th><th></th></tr></thead>
+              <tbody>${defects || '<tr><td colspan="6" class="muted">Nėra</td></tr>'}</tbody>
             </table>
           </div>
 
@@ -643,7 +593,8 @@
               <tbody>${docs}</tbody>
             </table>
           </div>
-                  <div class="card">
+        </div>
+        <div class="card">
         <h3>Naujas planinis blokas</h3>
         <div class="row">
           <div>
@@ -668,7 +619,6 @@
           <button class="btn" onclick="createManualBlock()">Sukurti bloką</button>
         </div>
       </div>
-        </div>
       `;
     }
     function validityStatus(iso){
@@ -687,16 +637,6 @@
         return { label:'ARTĖJA PABAIGA', class:'warn' };  
       }
       return { label:'OK', class:'success' };             
-    }
-    function uploadServiceDoc(defectId, inputEl){
-      const file = inputEl.files[0];
-      if (!file) return;
-      const d = db.defects.find(x=>x.id===defectId);
-      if (!d) return;
-      d.serviceDocName = file.name;
-      d.serviceDocUploadedAt = new Date().toISOString();
-      saveDB(db);
-      render();
     }
     function createManualBlock(){
       const carId = document.getElementById('blk_car').value;
@@ -722,18 +662,11 @@
     function closeDefect(id){
       const d = db.defects.find(x=>x.id===id);
       if(!d) return;
-
-      const note = prompt("Įveskite serviso atliktų darbų santrauką (pasirinktinai):", d.serviceNote || "");
-      if (note !== null) {
-        d.serviceNote = note.trim();
-      }
-
       d.status = 'uzdarytas';
       d.closedAt = new Date().toISOString();
-
-      db.blocks = db.blocks.filter(b=> !(b.carId===d.carId && b.reason && b.reason.startsWith('Defektas')));
-      saveDB(db);
-      render();
+      // nuimti bloką, jei buvo dėl defekto (pagal laiką ~ dabar)
+      db.blocks = db.blocks.filter(b=> !(b.carId===d.carId && b.reason==='Defektas'));
+      saveDB(db); render();
     }
     function extendTA(carId){
       const doc = db.docs.find(d=>d.carId===carId); if(!doc) return;
@@ -757,15 +690,14 @@
     function viewCar(){
       const u = currentUser();
       if(!u){ location.hash='#/login'; return viewLogin(); }
-
       const params = new URLSearchParams(location.hash.split('?')[1]||'');
       const id = params.get('id');
       const car = db.cars.find(c=>c.id===id);
       if(!car) return `<div class="card">Nerastas automobilis.</div>`;
 
-      const doc  = db.docs.find(d=>d.carId===id);
-      const resv = db.reservations.filter(r=>r.carId===id).sort((a,b)=>new Date(b.from)-new Date(a.from));
-      const dfc  = db.defects.filter(d=>d.carId===id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+      const doc = db.docs.find(d=>d.carId===id);
+      const resv = db.reservations.filter(r=>r.carId===id).slice(-5).reverse();
+      const dfc  = db.defects.filter(d=>d.carId===id).slice(-5).reverse();
 
       return `
         <div class="grid">
@@ -787,69 +719,51 @@
           </div>
 
           <div class="card">
-            <h3>Rezervacijų istorija</h3>
+            <h3>Paskutinės rezervacijos</h3>
             <table class="table mini">
               <thead><tr><th>Nuo</th><th>Iki</th><th>Vartotojas</th></tr></thead>
               <tbody>
-                ${
-                  resv.length
-                  ? resv.map(r=>{
-                      const usr = db.users.find(u=>u.id===r.userId);
-                      return `<tr>
-                        <td>${fmt(r.from)}</td>
-                        <td>${fmt(r.to)}</td>
-                        <td>${usr?.name||usr?.email||'?'}</td>
-                      </tr>`;
-                    }).join('')
-                  : `<tr><td colspan="3" class="muted">Nėra</td></tr>`
-                }
+                ${resv.map(r=>{
+                  const usr = db.users.find(u=>u.id===r.userId);
+                  return `<tr><td>${fmt(r.from)}</td><td>${fmt(r.to)}</td><td>${usr?.name||usr?.email||'?'}</td></tr>`;
+                }).join('') || `<tr><td colspan="3" class="muted">Nėra</td></tr>`}
               </tbody>
             </table>
           </div>
 
           <div class="card">
-            <h3>Defektai ir techninės priežiūros darbai</h3>
+            <h3>Defektai</h3>
             <table class="table mini">
-              <thead><tr><th>Aprašas</th><th>Prioritetas</th><th>Statusas</th><th>Sukurta</th></tr></thead>
+              <thead><tr><th>Aprašas</th><th>Statusas</th><th>Data</th></tr></thead>
               <tbody>
-                ${
-                  dfc.length
-                  ? dfc.map(d=>`
-                    <tr>
-                      <td>${d.desc}</td>
-                      <td>${d.priority || '-'}</td>
-                      <td>${d.status}</td>
-                      <td>${fmt(d.createdAt)}</td>
-                    </tr>
-                  `).join('')
-                  : `<tr><td colspan="4" class="muted">Nėra</td></tr>`
-                }
+                ${dfc.map(d=>`<tr><td>${d.desc}</td><td>${d.status}</td><td>${fmt(d.createdAt)}</td></tr>`).join('') || `<tr><td colspan="3" class="muted">Nėra</td></tr>`}
               </tbody>
             </table>
           </div>
-
           ${u.role === 'ukvedys' ? `
-          <div class="card">
-            <h3>Naujas defektas (ūkvedys)</h3>
-            <div class="row">
-              <div>
-                <label>Aprašas</label>
-                <input id="def_desc_car" placeholder="Triukšmas, įlenkimas, padanga..." />
-              </div>
-              <div>
-                <label>Prioritetas</label>
-                <select id="def_priority_car">
-                  <option value="nekritinis">Nekritinis</option>
-                  <option value="kritinis">Kritinis</option>
-                </select>
-              </div>
+        <div class="card">
+          <h3>Naujas defektas</h3>
+          <div class="row">
+            <div>
+              <label>Aprašas</label>
+              <input id="def_desc_car" placeholder="Triukšmas, įlenkimas, padanga..." />
             </div>
-            <div style="margin-top:8px">
-              <button class="btn warn" onclick="createDefectForCar('${car.id}')">Sukurti defektą</button>
+            <div>
+              <label>Prioritetas</label>
+              <select id="def_priority_car">
+                <option value="nekritinis">Nekritinis</option>
+                <option value="kritinis">Kritinis</option>
+              </select>
             </div>
           </div>
-          ` : ''}
+          <div style="margin-top:8px">
+            <button class="btn warn" onclick="createDefectForCar('${car.id}')">Sukurti defektą</button>
+          </div>
         </div>
+        ` : ''}
+      </div>
+        </div>
+          <div class="grid">
       `;
     }
 

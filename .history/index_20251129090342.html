@@ -1,3 +1,10 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Transporto rezervacijos prototipas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
     :root{
       --bg:#0b0c10; --card:#121319; --muted:#9aa3b2; --text:#e5e7eb; --acc:#7dd3fc; --acc2:#34d399; --warn:#f59e0b; --danger:#ef4444; --ok:#22c55e; --border:#222531;
     }
@@ -44,6 +51,18 @@
     .hl{color:#c3f1ff}
     .success{color:#bbf7d0}
     a{color:#93c5fd;text-decoration:none}
-    .mini.bad { color: #fecaca; }   
-    .mini.warn { color: #fde68a; }   
-    .mini.success { color: #bbf7d0; } 
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">🚗 Rezervacijų prototipas</div>
+      <div id="userArea" class="muted"></div>
+    </header>
+
+    <div id="view"></div>
+    <footer>Prototipas · Mock duomenys · <span class="muted">localStorage</span></footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

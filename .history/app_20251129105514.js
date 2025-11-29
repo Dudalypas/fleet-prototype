@@ -643,31 +643,6 @@
               <tbody>${docs}</tbody>
             </table>
           </div>
-                  <div class="card">
-        <h3>Naujas planinis blokas</h3>
-        <div class="row">
-          <div>
-            <label>Automobilis</label>
-            <select id="blk_car">
-              ${db.cars.map(c=>`<option value="${c.id}">${c.title} (${c.plate})</option>`).join('')}
-            </select>
-          </div>
-          <div>
-            <label>Nuo</label>
-            <input type="datetime-local" id="blk_from">
-          </div>
-          <div>
-            <label>Iki</label>
-            <input type="datetime-local" id="blk_to">
-          </div>
-        </div>
-        <div style="margin-top:8px">
-          <input id="blk_reason" placeholder="Priežastis, pvz. TA, planinis servisas" />
-        </div>
-        <div style="margin-top:8px">
-          <button class="btn" onclick="createManualBlock()">Sukurti bloką</button>
-        </div>
-      </div>
         </div>
       `;
     }

@@ -554,16 +554,10 @@
         return `<tr>
           <td>${car?.title||'?'} <span class="muted">(${car?.plate||'?'})</span></td>
           <td>${d.desc}</td>
-          <td>${d.priority || '-'}</td>
+          <td>${d.priority || '-'}</td>    <!-- ČIA -->
           <td>${d.status}</td>
           <td>${fmt(d.createdAt)}</td>
           <td>${d.closedAt?fmt(d.closedAt):'-'}</td>
-          <td>${d.serviceNote || '<span class="muted mini">Nenurodyta</span>'}</td>
-          <td>${
-            d.serviceDocName
-              ? `<span class="mini">${d.serviceDocName}</span>`
-              : `<input type="file" class="mini" onchange="uploadServiceDoc('${d.id}', this)">`
-          }</td>
           <td>
             ${d.status==='atidarytas'
               ? `<button class="btn ok mini" onclick="closeDefect('${d.id}')">Uždaryti</button>`
@@ -572,10 +566,12 @@
         </tr>`;
       }).join('');
 
+      // dokumentų būsena
       const docs = db.docs.map(doc=>{
         const car = db.cars.find(c=>c.id===doc.carId);
         const taS  = validityStatus(doc.taValidUntil);
         const insS = validityStatus(doc.insuranceUntil);
+
         return `<tr>
           <td>${car?.title} <span class="muted">(${car?.plate})</span></td>
           <td>
@@ -587,8 +583,8 @@
             <span class="mini ${insS.class}">${insS.label}</span>
           </td>
           <td>
-            <button class="btn mini" onclick="extendTA('${doc.carId}')">Nustatyti naują TA</button>
-            <button class="btn mini" onclick="extendINS('${doc.carId}')">Nustatyti naują draudimą</button>
+            <button class="btn mini" onclick="extendTA('${doc.carId}')">Keisti TA datą</button>
+            <button class="btn mini" onclick="extendINS('${doc.carId}')">Keisti draudimo datą</button>
           </td>
         </tr>`;
       }).join('');
@@ -617,22 +613,10 @@
           </div>
 
           <div class="card">
-            <h3>Defektai ir techninės priežiūros darbai</h3>
+            <h3>Defektai</h3>
             <table class="table mini">
-              <thead>
-                <tr>
-                  <th>Auto</th>
-                  <th>Aprašas</th>
-                  <th>Prioritetas</th>
-                  <th>Statusas</th>
-                  <th>Sukurta</th>
-                  <th>Uždaryta</th>
-                  <th>Serviso darbai</th>
-                  <th>Serviso dokumentas</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>${defects || '<tr><td colspan="9" class="muted">Nėra</td></tr>'}</tbody>
+              <thead><tr><th>Auto</th><th>Aprašas</th><th>Statusas</th><th>Sukurta</th><th>Uždaryta</th><th></th></tr></thead>
+              <tbody>${defects || '<tr><td colspan="6" class="muted">Nėra</td></tr>'}</tbody>
             </table>
           </div>
 
@@ -643,7 +627,8 @@
               <tbody>${docs}</tbody>
             </table>
           </div>
-                  <div class="card">
+        </div>
+        <div class="card">
         <h3>Naujas planinis blokas</h3>
         <div class="row">
           <div>
@@ -668,7 +653,6 @@
           <button class="btn" onclick="createManualBlock()">Sukurti bloką</button>
         </div>
       </div>
-        </div>
       `;
     }
     function validityStatus(iso){
@@ -687,16 +671,6 @@
         return { label:'ARTĖJA PABAIGA', class:'warn' };  
       }
       return { label:'OK', class:'success' };             
-    }
-    function uploadServiceDoc(defectId, inputEl){
-      const file = inputEl.files[0];
-      if (!file) return;
-      const d = db.defects.find(x=>x.id===defectId);
-      if (!d) return;
-      d.serviceDocName = file.name;
-      d.serviceDocUploadedAt = new Date().toISOString();
-      saveDB(db);
-      render();
     }
     function createManualBlock(){
       const carId = document.getElementById('blk_car').value;
@@ -722,18 +696,11 @@
     function closeDefect(id){
       const d = db.defects.find(x=>x.id===id);
       if(!d) return;
-
-      const note = prompt("Įveskite serviso atliktų darbų santrauką (pasirinktinai):", d.serviceNote || "");
-      if (note !== null) {
-        d.serviceNote = note.trim();
-      }
-
       d.status = 'uzdarytas';
       d.closedAt = new Date().toISOString();
-
-      db.blocks = db.blocks.filter(b=> !(b.carId===d.carId && b.reason && b.reason.startsWith('Defektas')));
-      saveDB(db);
-      render();
+      // nuimti bloką, jei buvo dėl defekto (pagal laiką ~ dabar)
+      db.blocks = db.blocks.filter(b=> !(b.carId===d.carId && b.reason==='Defektas'));
+      saveDB(db); render();
     }
     function extendTA(carId){
       const doc = db.docs.find(d=>d.carId===carId); if(!doc) return;
